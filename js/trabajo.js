@@ -54,11 +54,7 @@ class Nave extends THREE.Mesh {
 
     this.masa = 1;
     this.sin_carga = true;
-<<<<<<< HEAD
-    //this.loadModel();
-=======
     this.loadModel();
->>>>>>> d605dbe (Commit inicial)
   }
 
   loadModel() {
