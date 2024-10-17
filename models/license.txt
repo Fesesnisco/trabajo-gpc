@@ -1,0 +1,11 @@
+Model Information:
+* title:	Stylised Spaceship
+* source:	https://sketchfab.com/3d-models/stylised-spaceship-e75f5c71eb684f58b483335d4e3fa06d
+* author:	Nuriddin.Xamidov (https://sketchfab.com/Nuriddin.Xamidov)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Stylised Spaceship" (https://sketchfab.com/3d-models/stylised-spaceship-e75f5c71eb684f58b483335d4e3fa06d) by Nuriddin.Xamidov (https://sketchfab.com/Nuriddin.Xamidov) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -8,7 +8,7 @@ var angulo = -0.01;
 var a = 0;
 
 var controls = {
-  gravedad: false,
+  gravedad: true,
   camara_global_activa: false,
   //color: "#ffffff", // valor inicial para el color
   //opcion_si_no: false, // valor booleano
@@ -26,14 +26,12 @@ gui_size.open();
 const clock = new THREE.Clock();
 const debug = false;
 
-class Nave extends THREE.Mesh {
+class Nave extends THREE.Object3D {
   constructor() {
-    let geometria = new THREE.BoxGeometry();
-    let material = new THREE.MeshNormalMaterial();    
-    super(geometria, material);
+    super();
 
     var aspectRatio = window.innerWidth / window.innerHeight;
-    camera = new THREE.PerspectiveCamera( 50, aspectRatio , 1, 1000 );
+    camera = new THREE.PerspectiveCamera( 50, aspectRatio , 1, 100000 );
     camera.initial_position = new THREE.Vector3 (0, 2, 7);
     camera.position.set(camera.initial_position.x, camera.initial_position.y, camera.initial_position.z);
     this.add(camera);
@@ -41,10 +39,11 @@ class Nave extends THREE.Mesh {
 
     this.up.set(0, 0, -1);
     this.max_velocidad = 5;
-    this.min_velocidad = 1;
-    this.velocidad = this.min_velocidad;
+    this.min_velocidad = 0;
+    this.velocidad = 0;
     this.aceleracion = 0.02;
     this.acelerando = false;
+    this.frenando = false;
 
     this.velocidad_rotacion = 0.01;
     this.rotandoY = 0;
@@ -52,22 +51,10 @@ class Nave extends THREE.Mesh {
     this.rotandoX = 0;
     this.maxX = 0.001 * window.innerWidth + camera.initial_position.x;;
 
-    this.masa = 1;
+    this.masa = 2;
     this.sin_carga = true;
-    this.loadModel();
-  }
 
-  loadModel() {
-    const loader = new THREE.GLTFLoader();
-    const model = 'models/naves/fighter/fighter.gltf';
-    loader.load(model, function (object) {
-      // Callback que se llama al finalizar la carga
-      console.log(object);
-      this.add(object.scene);
-      object.scene.position.set(0, 0, 0);
-    }, undefined, function (error) {
-      console.error(error);
-    });
+    this.posicion_inicial = new THREE.Vector3(0, 100, 1000);
   }
 
   rotarY() {
@@ -100,7 +87,7 @@ class Nave extends THREE.Mesh {
     if (this.acelerando) {
       this.velocidad += this.aceleracion;
       this.velocidad = Math.min(this.velocidad, this.max_velocidad);
-    } else {
+    } else if (this.frenando) {
       this.velocidad -= this.aceleracion;
       this.velocidad = Math.max(this.velocidad, this.min_velocidad);
     }
@@ -113,11 +100,22 @@ class Nave extends THREE.Mesh {
     if (controls.gravedad) {
       let fuerzas = new THREE.Vector3 (0, 0, 0);
       PLANETAS.forEach(planeta => {
-        fuerzas = fuerzas.add(atraccion(this, planeta));
+        fuerzas = fuerzas.add(atraccion(planeta, this));
       });
 
-      this.translateOnAxis(fuerzas.normalize(), fuerzas.length());
+      this.translateOnAxis(fuerzas.normalize(), -fuerzas.length());
     }
+
+    let target = new THREE.Vector3();
+    PLANETAS.forEach(planeta => {
+      planeta.getWorldPosition(target)
+      let distancia = this.position.distanceTo(target);
+      if (distancia < planeta.radio + 20) {
+        console.log('toca')
+        this.position.set(this.posicion_inicial.x, this.posicion_inicial.y, this.posicion_inicial.z);
+        this.velocidad = 0;
+      }
+    })
   }
 }
 
@@ -140,7 +138,7 @@ class Paquete extends THREE.Mesh {
   }
 }
 
-class Planeta extends THREE.Mesh {
+class Planeta extends THREE.Object3D {
   constructor (radio, masa, radio_traslacion, velocidad_traslacion, velocidad_rotacion, base = false) {
     let geometria;
 
@@ -154,9 +152,11 @@ class Planeta extends THREE.Mesh {
     //roughness: 0.5,
     //metalness: 0.5});    
     let material = new THREE.MeshNormalMaterial();    
-    super(geometria, material);
+    super();
+    //super(geometria, material);
 
     this.masa = masa;
+    this.radio = radio;
     this.centro = new THREE.Object3D();
     this.centro.add(this);
     this.velocidad_traslacion = velocidad_traslacion;
@@ -190,7 +190,7 @@ function init()
 
   const width = window.innerWidth;
   const height = window.innerHeight;
-  camera_global = new THREE.OrthographicCamera( 10 * width / - 2, 10 * width / 2, 10 * height / 2, 10 * height / - 2, 0.1, 10000000 );
+  camera_global = new THREE.OrthographicCamera( 1 * width / - 2, 1 * width / 2, 1 * height / 2, 1 * height / - 2, 0.1, 10000000 );
   camera_global.lookAt( new THREE.Vector3( 0,0,0 ) );
   camera_global.position.set(0, 250, 250);
 
@@ -207,10 +207,11 @@ function init()
   const ambientLight = new THREE.AmbientLight(0xffffff, 1);
   scene.add(ambientLight);
   
-  const luz = new THREE.PointLight( 0xff0000, 1000, 0 , 100);
+  const luz = new THREE.PointLight( 0xaaaa00, 4, 0 , 0.1);
+  // const luz = new THREE.PointLight( 0xff2f00, 20, 0 , 0.1);
   luz.castShadow = true;
   luz.position.y = 100;
-  //luz.position.set( 50, 50, 50 );
+  luz.position.set( 50, 50, 50 );
   scene.add(luz);
 
 
@@ -219,31 +220,85 @@ function init()
 
 function loadScene()
 {
-  let planeta = new Planeta(radio=200, masa=10**13, radio_traslacion=0, velocidad_traslacion=0, velocidad_rotacion=0.001);
+  let planeta = new Planeta(radio=300, masa=10**13, radio_traslacion=0, velocidad_traslacion=0, velocidad_rotacion=0.001);
   PLANETAS.push(planeta);
+  let loader = new THREE.GLTFLoader();
+    loader.load('models/planetas/sol.glb', function (object) {
+      // Callback que se llama al finalizar la carga
+      object.scene.rotateY(Math.PI);
+      object.scene.scale.multiplyScalar(100);
+      PLANETAS[0].add(object.scene);
+      object.scene.position.set(0, 0, 0);
+    }, undefined, function (error) {
+      console.error(error);
+    });
 
   PLANETAS.push(new Planeta(radio=50, masa=10**10, radio_traslacion=750, velocidad_traslacion=0.002, velocidad_rotacion=0.002));
+  loader = new THREE.GLTFLoader();
+    loader.load('models/planetas/lava.glb', function (object) {
+      // Callback que se llama al finalizar la carga
+      object.scene.rotateY(Math.PI);
+      object.scene.scale.multiplyScalar(25);
+      PLANETAS[1].add(object.scene);
+      object.scene.position.set(0, 0, 0);
+      object.scene.material = new THREE.MeshStandardMaterial ({roughness: 0.5, metalness: 0.5});
+      object.scene.castShadow = true;
+    }, undefined, function (error) {
+      console.error(error);
+    });
 
-  PLANETAS.push(new Planeta(radio=75, masa=10**10, radio_traslacion=1000, velocidad_traslacion=0.001, velocidad_rotacion=0.002));
+  PLANETAS.push(new Planeta(radio=75, masa=10**10, radio_traslacion=1000, velocidad_traslacion=0.001, velocidad_rotacion=0.006));
+  loader = new THREE.GLTFLoader();
+    loader.load('models/planetas/marron.glb', function (object) {
+      // Callback que se llama al finalizar la carga
+      object.scene.rotateY(Math.PI);
+      object.scene.scale.multiplyScalar(30);
+      PLANETAS[2].add(object.scene);
+      object.scene.position.set(0, 0, 0);
+      object.scene.castShadow = true;
+    }, undefined, function (error) {
+      console.error(error);
+    });
+
+  PLANETAS[0].name = '0';
+  PLANETAS[1].name = '1';
+  PLANETAS[2].name = '2';
 
   //base = new Base();
   base = new Planeta(radio=0, masa=1, radio_traslacion=350, velocidad_traslacion=-0.002, velocidad_rotacion=0, base=true);
   PLANETAS.push(base);
 
   nave = new Nave();
-  //nave.loadModel();
-  nave.position.set(0, 0, 1000);
+  nave.position.set(0, 100, 1000);
+  loader = new THREE.GLTFLoader();
+    loader.load('models/spaceship/stylised_spaceship.glb', function (object) {
+      // Callback que se llama al finalizar la carga
+      object.scene.rotateY(Math.PI);
+      object.scene.scale.multiplyScalar(0.2);
+      nave.add(object.scene);
+      object.scene.position.set(0, 0, 0);
+      object.scene.receiveShadow = true;
+    }, undefined, function (error) {
+      console.error(error);
+    });
 
-  const loader = new THREE.CubeTextureLoader();
+  loader = new THREE.CubeTextureLoader();
   loader.setPath( 'images/skybox/' );
-  const textureCube = loader.load( [ 'right.png', 'left.png', 'top.png', 'bottom.png', 'front.png', 'back.png' ] );
-  const material = new THREE.MeshBasicMaterial( { color: 0xffffff, envMap: textureCube } );
+  let textureCube = loader.load( [ 'right.png', 'left.png', 'top.png', 'bottom.png', 'front.png', 'back.png' ] );
+  // let textureCube = loader.load( [  'left.png','right.png', 'bottom.png','top.png',  'front.png', 'back.png',] );
+  // let material = new THREE.MeshBasicMaterial( { color: 0xffffff, envMap: textureCube, side: THREE.BackSide } );
+  // let geometriaCielo = new THREE.BoxGeometry(2000, 2000, 2000);
+  // let cielo = new THREE.Mesh(geometriaCielo, material);
+  // scene.add(cielo);
   scene.background = textureCube;
 
   document.addEventListener('keydown', function(event) {
     switch (event.key) {
       case ' ':
         nave.acelerando = true;
+        break;
+      case 'Shift':
+        nave.frenando = true;
         break;
       case 'w':
         nave.rotandoX = 1;
@@ -266,6 +321,9 @@ function loadScene()
     switch (event.key) {
       case ' ':
         nave.acelerando = false;
+        break;
+      case 'Shift':
+        nave.frenando = false;
         break;
       case 'w':
         nave.rotandoX = 0;
