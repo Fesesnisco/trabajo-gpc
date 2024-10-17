@@ -9,7 +9,7 @@ var a = 0;
 
 var controls = {
   gravedad: false,
-  camara_global_activa: true,
+  camara_global_activa: false,
   //color: "#ffffff", // valor inicial para el color
   //opcion_si_no: false, // valor booleano
 };
@@ -140,19 +140,19 @@ class Paquete extends THREE.Mesh {
 }
 
 class Planeta extends THREE.Mesh {
-  constructor (radio, masa, radio_traslacion, velocidad_traslacion, velocidad_rotacion) {
+  constructor (radio, masa, radio_traslacion, velocidad_traslacion, velocidad_rotacion, base = false) {
     let geometria;
 
-    if (debug) {
-      geometria = new THREE.BoxGeometry(radio, radio, radio);
+    if (base) {
+      geometria = new THREE.BoxGeometry(100, 50, 50);
     } else {
       geometria = new THREE.SphereGeometry(radio, 32, 16);
     }
 
-    let material = new THREE.MeshStandardMaterial({'color' : new THREE.Color(0,255,0),
-    roughness: 0.5,
-    metalness: 0.5});    
-    //let material = new THREE.MeshNormalMaterial();    
+    //let material = new THREE.MeshStandardMaterial({'color' : new THREE.Color(0,255,0),
+    //roughness: 0.5,
+    //metalness: 0.5});    
+    let material = new THREE.MeshNormalMaterial();    
     super(geometria, material);
 
     this.masa = masa;
@@ -189,7 +189,7 @@ function init()
 
   const width = window.innerWidth;
   const height = window.innerHeight;
-  camera_global = new THREE.OrthographicCamera( width / - 2, width / 2, height / 2, height / - 2, 0.1, 10000 );
+  camera_global = new THREE.OrthographicCamera( 10 * width / - 2, 10 * width / 2, 10 * height / 2, 10 * height / - 2, 0.1, 10000000 );
   camera_global.lookAt( new THREE.Vector3( 0,0,0 ) );
   camera_global.position.set(0, 250, 250);
 
@@ -218,14 +218,16 @@ function init()
 
 function loadScene()
 {
-  let planeta = new Planeta(radio=100, masa=10**12, radio_traslacion=0, velocidad_traslacion=0, velocidad_rotacion=0.001);
+  let planeta = new Planeta(radio=200, masa=10**13, radio_traslacion=0, velocidad_traslacion=0, velocidad_rotacion=0.001);
   PLANETAS.push(planeta);
 
-  PLANETAS.push(new Planeta(radio=100, masa=10**10, radio_traslacion=250, velocidad_traslacion=0.002, velocidad_rotacion=0.002));
+  PLANETAS.push(new Planeta(radio=50, masa=10**10, radio_traslacion=750, velocidad_traslacion=0.002, velocidad_rotacion=0.002));
 
-  PLANETAS.push(new Planeta(radio=100, masa=10**10, radio_traslacion=500, velocidad_traslacion=0.001, velocidad_rotacion=0.002));
+  PLANETAS.push(new Planeta(radio=75, masa=10**10, radio_traslacion=1000, velocidad_traslacion=0.001, velocidad_rotacion=0.002));
 
-  base = new Base();
+  //base = new Base();
+  base = new Planeta(radio=0, masa=1, radio_traslacion=350, velocidad_traslacion=-0.002, velocidad_rotacion=0, base=true);
+  PLANETAS.push(base);
 
   nave = new Nave();
   //nave.loadModel();
