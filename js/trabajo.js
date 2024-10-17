@@ -63,11 +63,9 @@ class Nave extends THREE.Mesh {
     loader.load(model, function (object) {
       // Callback que se llama al finalizar la carga
       console.log(object);
-      this.add(object);
-      object.position.set(0, 0, 0);
-    }, function (error) {
-      console.error(error);
-    }, function (error) {
+      this.add(object.scene);
+      object.scene.position.set(0, 0, 0);
+    }, undefined, function (error) {
       console.error(error);
     });
   }
