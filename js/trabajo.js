@@ -7,6 +7,10 @@ var camera_global_controls;
 var angulo = -0.01;
 var a = 0;
 
+const stats = new Stats();
+stats.showPanel(0); // FPS inicialmente. Picar para cambiar panel.
+document.getElementById( 'container' ).appendChild( stats.domElement );
+
 var controls = {
   gravedad: true,
   camara_global_activa: false,
@@ -17,10 +21,13 @@ var controls = {
 // interface de usuario
 var gui = new dat.GUI();
 // Carpeta Tamaño
-var gui_size = gui.addFolder('Pruebas');
-gui_size.add(controls, 'gravedad').name("Gravedad");
-gui_size.add(controls, 'camara_global_activa').name("Camara global");
-gui_size.open();
+gui.addFolder('WASD para moverse');
+gui.addFolder('Espacio para acelerar');
+gui.addFolder('Shift para frenar');
+// var gui_size = gui.addFolder('Pruebas');
+// gui_size.add(controls, 'gravedad').name("Gravedad");
+// gui_size.add(controls, 'camara_global_activa').name("Camara global");
+// gui_size.open();
 // Carpeta Orientación
 
 const clock = new THREE.Clock();
@@ -54,7 +61,8 @@ class Nave extends THREE.Object3D {
     this.masa = 2;
     this.sin_carga = true;
 
-    this.posicion_inicial = new THREE.Vector3(0, 100, 1000);
+    this.posicion_inicial = new THREE.Vector3(0, 100, 4000);
+    this.position.set(this.posicion_inicial.x, this.posicion_inicial.y, this.posicion_inicial.z);
   }
 
   rotarY() {
@@ -108,7 +116,7 @@ class Nave extends THREE.Object3D {
 
     let target = new THREE.Vector3();
     PLANETAS.forEach(planeta => {
-      planeta.getWorldPosition(target)
+      planeta.getWorldPosition(target);
       let distancia = this.position.distanceTo(target);
       if (distancia < planeta.radio + 20) {
         console.log('toca')
@@ -139,7 +147,7 @@ class Paquete extends THREE.Mesh {
 }
 
 class Planeta extends THREE.Object3D {
-  constructor (radio, masa, radio_traslacion, velocidad_traslacion, velocidad_rotacion, base = false) {
+  constructor (radio, masa, radio_traslacion, velocidad_traslacion, velocidad_rotacion, base = false, centro = undefined) {
     let geometria;
 
     if (base) {
@@ -147,23 +155,25 @@ class Planeta extends THREE.Object3D {
     } else {
       geometria = new THREE.SphereGeometry(radio, 32, 16);
     }
-
-    //let material = new THREE.MeshStandardMaterial({'color' : new THREE.Color(0,255,0),
-    //roughness: 0.5,
-    //metalness: 0.5});    
-    let material = new THREE.MeshNormalMaterial();    
+ 
     super();
-    //super(geometria, material);
 
     this.masa = masa;
     this.radio = radio;
-    this.centro = new THREE.Object3D();
-    this.centro.add(this);
+
+    if (centro) {
+      this.centro = centro;
+    } else {
+      this.centro = new THREE.Object3D();
+      this.centro.add(this);
+    }
+
     this.velocidad_traslacion = velocidad_traslacion;
     this.velocidad_rotacion = velocidad_rotacion;
     
     scene.add(this.centro);
     this.position.set(0, 0, radio_traslacion);
+    this.centro.rotateY(Math.PI * 2 * Math.random());
   }
 }
 
@@ -220,25 +230,25 @@ function init()
 
 function loadScene()
 {
-  let planeta = new Planeta(radio=300, masa=10**13, radio_traslacion=0, velocidad_traslacion=0, velocidad_rotacion=0.001);
+  let planeta = new Planeta(radio=900, masa=10**13, radio_traslacion=0, velocidad_traslacion=0, velocidad_rotacion=0.001);
   PLANETAS.push(planeta);
   let loader = new THREE.GLTFLoader();
     loader.load('models/planetas/sol.glb', function (object) {
       // Callback que se llama al finalizar la carga
       object.scene.rotateY(Math.PI);
-      object.scene.scale.multiplyScalar(100);
+      object.scene.scale.multiplyScalar(300);
       PLANETAS[0].add(object.scene);
       object.scene.position.set(0, 0, 0);
     }, undefined, function (error) {
       console.error(error);
     });
 
-  PLANETAS.push(new Planeta(radio=50, masa=10**10, radio_traslacion=750, velocidad_traslacion=0.002, velocidad_rotacion=0.002));
+  PLANETAS.push(new Planeta(radio=100, masa=10**10, radio_traslacion=1500, velocidad_traslacion=0.003, velocidad_rotacion=0.002));
   loader = new THREE.GLTFLoader();
     loader.load('models/planetas/lava.glb', function (object) {
       // Callback que se llama al finalizar la carga
       object.scene.rotateY(Math.PI);
-      object.scene.scale.multiplyScalar(25);
+      object.scene.scale.multiplyScalar(50);
       PLANETAS[1].add(object.scene);
       object.scene.position.set(0, 0, 0);
       object.scene.material = new THREE.MeshStandardMaterial ({roughness: 0.5, metalness: 0.5});
@@ -247,12 +257,12 @@ function loadScene()
       console.error(error);
     });
 
-  PLANETAS.push(new Planeta(radio=75, masa=10**10, radio_traslacion=1000, velocidad_traslacion=0.001, velocidad_rotacion=0.006));
+  PLANETAS.push(new Planeta(radio=200, masa=10**10, radio_traslacion=2000, velocidad_traslacion=0.002, velocidad_rotacion=0.006));
   loader = new THREE.GLTFLoader();
     loader.load('models/planetas/marron.glb', function (object) {
       // Callback que se llama al finalizar la carga
       object.scene.rotateY(Math.PI);
-      object.scene.scale.multiplyScalar(30);
+      object.scene.scale.multiplyScalar(100);
       PLANETAS[2].add(object.scene);
       object.scene.position.set(0, 0, 0);
       object.scene.castShadow = true;
@@ -260,16 +270,37 @@ function loadScene()
       console.error(error);
     });
 
-  PLANETAS[0].name = '0';
-  PLANETAS[1].name = '1';
-  PLANETAS[2].name = '2';
+  PLANETAS.push(new Planeta(radio=450, masa=10**11, radio_traslacion=2700, velocidad_traslacion=0.001, velocidad_rotacion=0.003));
+  loader = new THREE.GLTFLoader();
+    loader.load('models/planetas/naranja.glb', function (object) {
+      // Callback que se llama al finalizar la carga
+      object.scene.rotateY(Math.PI);
+      object.scene.scale.multiplyScalar(225);
+      PLANETAS[3].add(object.scene);
+      object.scene.position.set(0, 0, 0);
+      object.scene.castShadow = true;
+    }, undefined, function (error) {
+      console.error(error);
+    });
+
+  PLANETAS.push(new Planeta(radio=300, masa=10**11, radio_traslacion=3100, velocidad_traslacion=0.001, velocidad_rotacion=0.003));
+  loader = new THREE.GLTFLoader();
+    loader.load('models/planetas/azul.glb', function (object) {
+      // Callback que se llama al finalizar la carga
+      object.scene.rotateY(Math.PI);
+      object.scene.scale.multiplyScalar(150);
+      PLANETAS[4].add(object.scene);
+      object.scene.position.set(0, 0, 0);
+      object.scene.castShadow = true;
+    }, undefined, function (error) {
+      console.error(error);
+    });
 
   //base = new Base();
   base = new Planeta(radio=0, masa=1, radio_traslacion=350, velocidad_traslacion=-0.002, velocidad_rotacion=0, base=true);
   PLANETAS.push(base);
 
   nave = new Nave();
-  nave.position.set(0, 100, 1000);
   loader = new THREE.GLTFLoader();
     loader.load('models/spaceship/stylised_spaceship.glb', function (object) {
       // Callback que se llama al finalizar la carga
@@ -375,6 +406,8 @@ function update()
     planeta.centro.rotateY(planeta.velocidad_traslacion);
     planeta.rotateY(planeta.velocidad_rotacion);
   });
+
+  stats.update();
 }
 
 function render()
