@@ -62,6 +62,7 @@ class Nave extends THREE.Mesh {
     const model = 'models/naves/fighter/fighter.gltf';
     loader.load(model, function (object) {
       // Callback que se llama al finalizar la carga
+      console.log(object);
       this.add(object);
       object.position.set(0, 0, 0);
     }, function (error) {
